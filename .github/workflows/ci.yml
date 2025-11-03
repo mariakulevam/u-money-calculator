@@ -55,3 +55,16 @@ jobs:
 
           echo "Run pytest with PYTHONPATH=$PROJ_DIR"
           PYTHONPATH="$PROJ_DIR" pytest -q
+
+      - name: Run tests (add nested folder to PYTHONPATH)
+        run: |
+          pip install pytest flake8
+          # добавляем возможную вложенную папку в PYTHONPATH
+          if [ -d "$GITHUB_WORKSPACE/u-money-calculator" ]; then
+            export PYTHONPATH="$GITHUB_WORKSPACE/u-money-calculator:$GITHUB_WORKSPACE"
+          else
+            export PYTHONPATH="$GITHUB_WORKSPACE"
+          fi
+          echo "PYTHONPATH=$PYTHONPATH"
+          pytest -q
+
