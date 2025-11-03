@@ -2,69 +2,59 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
+  # 🛠️ Сборка, установка зависимостей, линтинг и тесты
   build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Скачиваем код
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Настраиваем Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 3️⃣ Устанавливаем зависимости
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4️⃣ Проверка линтера (flake8)
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          flake8 . || true   # чтобы workflow не падал из-за предупреждений
+
+      # 5️⃣ Настройка PYTHONPATH и запуск тестов
+      - name: Run tests with pytest
+        run: |
+          pip install pytest
+          PYTHONPATH=$GITHUB_WORKSPACE pytest -q
+
+  # 🐳 Docker job — только если build прошёл
+  docker:
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Show workspace layout (debug)
+      - name: Build Docker image
         run: |
-          echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
-          echo "Top-level listing:"
-          ls -la "$GITHUB_WORKSPACE" || true
-          echo "Listing contents of each subfolder:"
-          for d in "$GITHUB_WORKSPACE"/*; do
-            [ -d "$d" ] && echo "---- $d ----" && ls -la "$d"
-          done
+          docker build -t u-money-calculator .
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Run tests (auto-detect project folder)
+      - name: Run Docker container
         run: |
-          PROJ_DIR="$GITHUB_WORKSPACE"
-          if [ -d "$GITHUB_WORKSPACE/u-money-calculator" ] && [ -f "$GITHUB_WORKSPACE/u-money-calculator/requirements.txt" ]; then
-            PROJ_DIR="$GITHUB_WORKSPACE/u-money-calculator"
-          else
-            for d in "$GITHUB_WORKSPACE"/*; do
-              if [ -d "$d/app" ] && [ -d "$d/tests" ]; then
-                PROJ_DIR="$d"
-                break
-              fi
-            done
-          fi
-
-          echo "Using project dir: $PROJ_DIR"
-          cd "$PROJ_DIR"
-
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt || true
-          pip install pytest flake8
-
-          echo "Run flake8 (warnings won't fail the job)"
-          flake8 . || true
-
-          echo "Run pytest with PYTHONPATH=$PROJ_DIR"
-          PYTHONPATH="$PROJ_DIR" pytest -q
-
-      - name: Run tests (add nested folder to PYTHONPATH)
-        run: |
-          pip install pytest flake8
-          # добавляем возможную вложенную папку в PYTHONPATH
-          if [ -d "$GITHUB_WORKSPACE/u-money-calculator" ]; then
-            export PYTHONPATH="$GITHUB_WORKSPACE/u-money-calculator:$GITHUB_WORKSPACE"
-          else
-            export PYTHONPATH="$GITHUB_WORKSPACE"
-          fi
-          echo "PYTHONPATH=$PYTHONPATH"
-          pytest -q
-
+          docker run --rm u-money-calculator
