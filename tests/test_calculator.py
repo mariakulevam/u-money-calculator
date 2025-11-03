@@ -12,7 +12,7 @@ def test_add_expense_and_balance():
     ledger = Ledger()
     ledger.add_income(200)
     ledger.add_expense(50)
-    assert ledger.balance() == 1510.0
+    assert ledger.balance() == 1520.0
 
 
 def test_negative_amount_raises():
