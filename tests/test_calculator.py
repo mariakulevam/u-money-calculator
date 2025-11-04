@@ -21,4 +21,4 @@ def test_negative_amount_raises():
         ledger.add_income(-10)
     with pytest.raises(ValueError):
         ledger.add_expense(0)
-#SSS
+#SSS2
