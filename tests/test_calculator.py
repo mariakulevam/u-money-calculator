@@ -5,7 +5,7 @@ from app.calculator import Ledger
 def test_add_income_and_balance():
     ledger = Ledger()
     ledger.add_income(100, "salary")
-    assert ledger.balance() == 150.0
+    assert ledger.balance() == 100.0
 
 
 def test_add_expense_and_balance():
